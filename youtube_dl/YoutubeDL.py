@@ -353,7 +353,7 @@ class YoutubeDL(object):
         }
         self.params.update(params)
         self.cache = Cache(self)
-        self.downloaded_filename = ''
+        self.downloaded_filenames = []
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
@@ -1907,7 +1907,7 @@ class YoutubeDL(object):
                 else:
                     # Just a single file
                     success = dl(filename, info_dict)
-                self.downloaded_filename = filename
+                self.downloaded_filenames.append(filename)
             except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                 self.report_error('unable to download video data: %s' % error_to_compat_str(err))
                 return
@@ -1990,6 +1990,7 @@ class YoutubeDL(object):
     def download(self, url_list):
         """Download a given list of URLs."""
         outtmpl = self.params.get('outtmpl', DEFAULT_OUTTMPL)
+        self.downloaded_filenames = []
         if (len(url_list) > 1 and
                 outtmpl != '-' and
                 '%' not in outtmpl and
