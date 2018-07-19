@@ -1632,7 +1632,8 @@ class YoutubeDL(object):
             for format in formats_to_download:
                 new_info = dict(info_dict)
                 new_info.update(format)
-                self.process_info(new_info)
+                output_filename = self.process_info(new_info).get('downloaded_filename', '')
+            info_dict['downloaded_filename'] = output_filename
         # We update the info dict with the best quality format (backwards compatibility)
         info_dict.update(formats_to_download[-1])
         return info_dict
@@ -1906,6 +1907,7 @@ class YoutubeDL(object):
                 else:
                     # Just a single file
                     success = dl(filename, info_dict)
+                info_dict['downloaded_filename'] = filename
             except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
                 self.report_error('unable to download video data: %s' % error_to_compat_str(err))
                 return
@@ -1984,6 +1986,7 @@ class YoutubeDL(object):
                     self.report_error('postprocessing: %s' % str(err))
                     return
                 self.record_download_archive(info_dict)
+        return info_dict
 
     def download(self, url_list):
         """Download a given list of URLs."""
@@ -1993,7 +1996,7 @@ class YoutubeDL(object):
                 '%' not in outtmpl and
                 self.params.get('max_downloads') != 1):
             raise SameFileError(outtmpl)
-
+        res = {}
         for url in url_list:
             try:
                 # It also downloads the videos
@@ -2008,16 +2011,17 @@ class YoutubeDL(object):
                 if self.params.get('dump_single_json', False):
                     self.to_stdout(json.dumps(res))
 
-        return self._download_retcode
+        return res #self._download_retcode
 
     def download_with_info_file(self, info_filename):
+        response = {}
         with contextlib.closing(fileinput.FileInput(
                 [info_filename], mode='r',
                 openhook=fileinput.hook_encoded('utf-8'))) as f:
             # FileInput doesn't have a read method, we can't call json.load
             info = self.filter_requested_info(json.loads('\n'.join(f)))
         try:
-            self.process_ie_result(info, download=True)
+            response = self.process_ie_result(info, download=True)
         except DownloadError:
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
@@ -2025,7 +2029,7 @@ class YoutubeDL(object):
                 return self.download([webpage_url])
             else:
                 raise
-        return self._download_retcode
+        return response #self._download_retcode
 
     @staticmethod
     def filter_requested_info(info_dict):
